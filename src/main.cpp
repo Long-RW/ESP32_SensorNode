@@ -3,31 +3,21 @@
 #include <Wire.h>
 #include <string.h>
 #define PIR 16
-unsigned long counter = 0;
+
 // Replace the next variables with your SSID/Password combination
 const char* ssid = "Song Quynh";
 const char* password = "songquynh25042112";
 char temp[5];
 // Add your MQTT Broker IP address, example:
-//const char* mqtt_server = "192.168.1.144";
-const char* mqtt_server = "192.168.1.41 ";
+const char* mqtt_server = "192.168.1.41";
 unsigned long timeNow = 0;
 int buff = 0;
+int counter = 0;
 WiFiClient espClient;
 PubSubClient client(espClient);
 long lastMsg = 0;
 char msg[50];
 int value = 0;
-void setup_wifi();
-void callback(char* topic, byte* message, unsigned int length);
-void setup() {
-  Serial.begin(115200);
-  pinMode(PIR, INPUT);
-  setup_wifi();
-  client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);
-
-}
 
 void setup_wifi() {
   Serial.print("Connecting to ");
@@ -72,59 +62,50 @@ void reconnect() {
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
-      delay(5000);
+      delay(1000);
     }
   }
 }
-void loop() {
-  // if(digitalRead(PIR))
-  // {
-  //   while(digitalRead(PIR) != 0);
-  //   counter++;
-  // }
-  // sprintf(temp,"%d",counter);
 
-  if(WiFi.status() != WL_CONNECTED)
-  { 
-    buff = digitalRead(PIR);
-    if(buff)
+void setup() {
+  Serial.begin(115200);
+  pinMode(PIR, INPUT);
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+
+}
+
+void loop() 
+{
+  buff = digitalRead(PIR);
+  
+  if(buff)
+  {
+    if(counter == 0)
     {
-      counter++;
+      counter = 1;
     }
-  }
-  else
-  { 
-    buff = digitalRead(PIR);
-    sprintf(temp,"%d",counter);
-    if(counter != 0)
+    else if (counter == 1)
     {
-      if (!client.connected()) 
-      {
-        reconnect();
-      }
-      client.loop();
-      long now = millis();
-      if (now - lastMsg > 5000) 
-      {
-        lastMsg = now;
-        client.publish("Sensor/PIR1", temp);
-      }
       counter = 0;
     }
-    else
+    sprintf(temp,"%d",counter);
+    if (!client.connected()) 
     {
-      if (!client.connected()) 
-      {
-        reconnect();
-      }
-      client.loop();
-      long now = millis();
-      if (now - lastMsg > 5000) 
-      {
-        lastMsg = now;
-        client.publish("Sensor/PIR1", temp);
-      }
+      reconnect();
+    }
+    client.loop();
+    long now = millis();
+    if (now - lastMsg > 100) 
+    {
+      lastMsg = now;
+      client.publish("Sensor/PIR2", temp);
     }
   }
 
+  while(buff != 0)
+  {
+    buff = digitalRead(PIR);
+  }
 }
